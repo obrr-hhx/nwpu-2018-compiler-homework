@@ -34,3 +34,36 @@ void Error::lexError(int code){
 	printf("%s<%d行> 词法错误 : %s.\n",scanner->getFileName(),
 		scanner->getLineNum(),lexErrorTable[code]);
 }
+
+/*
+	打印语法错误
+*/
+void Error::synError(int code,Token*t)
+{
+	//语法错误信息串
+	static const char *synErrorTable[]=
+	{
+		"类型",
+		"标识符",
+		"数组长度",
+		"常量",
+		"逗号",
+		"分号",
+		"=",
+		"冒号",
+		"while",
+		"(",
+		")",
+		"[",
+		"]",
+		"{",
+		"}"
+	};
+	errorNum++;
+	if(code%2==0)//lost
+		printf("%s<第%d行> 语法错误 : 在 %s 之前丢失 %s .\n",scanner->getFileName(),scanner->getLineNum()
+			,t->toString().c_str(),synErrorTable[code/2]);
+	else//wrong
+		printf("%s<第%d行> 语法错误 : 在 %s 处没有正确匹配 %s .\n",scanner->getFileName(),scanner->getLineNum()
+			,t->toString().c_str(),synErrorTable[code]);
+}
