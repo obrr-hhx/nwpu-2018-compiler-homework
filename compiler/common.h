@@ -82,6 +82,39 @@ enum SynError
 	RBRACE_WRONG
 };
 
+// 语义错误码
+enum SemError
+{
+	VAR_RE_DEF,					//变量重定义
+	FUN_RE_DEF,					//函数重定义
+	VAR_UN_DEC,					//变量未声明
+	FUN_UN_DEC,					//函数未声明
+	FUN_DEC_ERR,				//函数声明与定义不匹配
+	FUN_CALL_ERR,				//行参实参不匹配
+	DEC_INIT_DENY,			//声明不允许初始化
+	EXTERN_FUN_DEF,			//函数声明不能使用extern
+	ARRAY_LEN_INVALID,	//数组长度无效
+	VAR_INIT_ERR,				//变量初始化类型错误
+	GLB_INIT_ERR,				//全局变量初始化值不是常量
+	VOID_VAR,						//void变量
+	EXPR_NOT_LEFT_VAL,	//无效的左值表达式
+	ASSIGN_TYPE_ERR,		//赋值类型不匹配
+	EXPR_IS_BASE,				//表达式不能是基本类型
+	EXPR_NOT_BASE,			//表达式不是基本类型
+	ARR_TYPE_ERR,				//数组运算类型错误
+	EXPR_IS_VOID,				//表达式不能是VOID类型
+	BREAK_ERR,					//break不在循环或switch-case中
+	CONTINUE_ERR,				//continue不在循环中
+	RETURN_ERR					//return语句和函数返回值类型不匹配
+};
+
+// 语义警告码
+enum SemWarn
+{
+    FUN_DEC_CONFLICT, //函数参数列表类型冲突
+    FUN_RET_CONFLICT //函数返回值类型冲突
+};
+
 extern const char * tokenName[];
 
 class Token;
@@ -89,5 +122,6 @@ class Scanner;
 class Error;
 class Lexer;
 class Parser;
+class SymTab;
 class Var;
 class Fun;

@@ -2,6 +2,9 @@
 #include"error.h"
 #include"token.h"
 #include"lexer.h"
+#include"parser.h"
+#include"symtab.h"
+#include"symbol.h"
 
 string varietyTable[48] = {
     "ERR",																					//错误，异常
@@ -27,15 +30,21 @@ string varietyTable[48] = {
 
 int main(int argc, char *argv[]){
     string file = "test.txt";
-    cout<<file<<endl;
-    const char* name = file.c_str();
-    Scanner scanner(name);
-    Lexer lex(scanner);
-    Error error(&scanner);
-    Token* t = lex.tokenize();
-    cout<<varietyTable[t->tag]<<endl;
-    while(t->tag != END){
-        t = lex.tokenize();
-        cout<<varietyTable[t->tag]<<endl;
-    }
+	cout<<file<<endl;
+	const char* name = file.c_str();
+	Scanner scanner(name);
+	Scanner scanner1(name);
+	Lexer lex(scanner);
+	Lexer lex1(scanner1);
+	Error error(&scanner);
+	Token* t = lex.tokenize();
+	cout<<varietyTable[t->tag]<<endl;
+	while(t->tag != END){
+		t = lex.tokenize();
+		cout<<varietyTable[t->tag]<<endl;
+	}
+	SymTab symtab;
+	Parser parser(lex1,symtab);
+	parser.analyse();
+	symtab.toString();
 }

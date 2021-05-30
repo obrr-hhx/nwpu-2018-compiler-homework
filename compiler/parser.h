@@ -31,46 +31,49 @@ class Parser
     //语句
     void statement();
     void whilestat();
-    void dowhilestat();
-    void forstat();
-    void forinit();
-    void ifstat();
-    void elsestat();
-    void swicthstat();
-    void casestat(Var* cond);
-    Var* caselabel();
+    // void dowhilestat();
+    // void forstat();
+    // void forinit();
+    // void ifstat();
+    // void elsestat();
+    // void swicthstat();
+    // void casestat(Var* cond);
+    // Var* caselabel();
 
     //表达式
     Var* altexpr();
-    Var* expr();
-    Var* assexpr();
-    Var* asstail(Var* lval);
-    Var* orexpr();
-    Var* ortail(Var* lval);
-    Var* andexper();
-    Var* andtail(Var* lval);
-    Var* cmpexpr();
-    Var* cmptail(Var* lval);
-    Tag cmps();
-    Var* aloexpr();
-    Var* alotail(Var* lval);
-    Tag adds();
-    Var* item();
-	Var* itemtail(Var*lval);
-	Tag muls();
-	Var* factor();
-	Tag lop();
-	Var* val();
-	Tag rop();
-	Var* elem();
-	Var* literal();
-	Var* idexpr(string name);
-	void realarg(vector<Var*> &args);
-	void arglist(vector<Var*> &args);
-	Var* arg();
+    // Var* expr();
+    // Var* assexpr();
+    // Var* asstail(Var* lval);
+    // Var* orexpr();
+    // Var* ortail(Var* lval);
+    // Var* andexper();
+    // Var* andtail(Var* lval);
+    // Var* cmpexpr();
+    // Var* cmptail(Var* lval);
+    // Tag cmps();
+    // Var* aloexpr();
+    // Var* alotail(Var* lval);
+    // Tag adds();
+    // Var* item();
+    // Var* itemtail(Var*lval);
+    // Tag muls();
+    // Var* factor();
+    // Tag lop();
+    // Var* val();
+    // Tag rop();
+    // Var* elem();
+    Var* literal();
+    // Var* idexpr(string name);
+    // void realarg(vector<Var*> &args);
+    // void arglist(vector<Var*> &args);
+    // Var* arg();
 
     Lexer &lexer;//词法分析器
     Token* look;//查看超前的字母
+
+    //符号表
+    SymTab &symtab;
 
     //语法分析与错误修复
     void move();//向前移一位
@@ -78,7 +81,7 @@ class Parser
     void recovery(bool cond, SynError lost, SynError wrong);//错误修复
 
 public:
-    Parser(Lexer &lexer);
+    Parser(Lexer &lexer, SymTab &tab);
 
     void analyse();// 语法分析
-}
+};
