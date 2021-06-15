@@ -15,6 +15,9 @@ class SymTab{
     int scopeId; // 作用域编号
     vector<int> scopePath; // 记录作用域的路径
 
+    // 中间代码生成器
+    GenIR *ir;
+
 public:
     SymTab();
     ~SymTab();
@@ -37,8 +40,13 @@ public:
 
     //函数管理
     void decFun(Fun* f); // 声明函数
-    // void defFun(Fun* f); // 定义函数
-    // void endDefFun(); // 结束定义函数
+    void defFun(Fun* f); // 定义函数
+    void endDefFun(); // 结束定义函数
+    Fun* getFun(string name, vector<Var*>& args); // 获取函数
+    Fun* getCurFun(); // 获取当前函数
+    void addInst(InterInst* inst); // 添加一条中间代码
+
+    void setIR(GenIR*ir); // 设置中间代码生成器  
 
     // 输出信息
     void toString();

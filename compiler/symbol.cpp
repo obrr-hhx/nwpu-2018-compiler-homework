@@ -63,6 +63,25 @@ Var::Var(int val){
     intVal = val;
 }
 
+// 临时变量
+Var::Var(vector<int>&sp,Tag t,bool ptr){
+    clear();
+    scopePath = sp;
+    setType(t);
+    setPtr(ptr);
+    setName("");
+    setLeft(false);
+}
+
+// 拷贝变量
+Var::Var(vector<int>&sp,Var*v){
+    clear();
+    setType(v->type);
+    setPtr(v->ptr || v->isArr);
+    setName("");
+    setLeft(false);// v->isLeft
+}
+
 // void变量
 Var::Var(){
     clear();
@@ -130,6 +149,12 @@ void Var::setExtern(bool ext){
 
 void Var::setType(Tag t){
     type = t;
+    if(t == KW_VOID){ // 变量类型不能是void
+        SEMERROR(VOID_VAR,"");
+        type = KW_INT;
+    }
+    if(!externed && type == KW_INT) size = 4; // int型变量大小为4字节
+    if(!externed && type == KW_CHAR) size = 1; // 字符型变量大小为1字节
 }
 
 void Var::setLeft(bool lf){
@@ -153,7 +178,47 @@ void Var::setArray(int len){
         arrayLen = len;
         if(!externed) size *= len;
     }
+}
 
+// 设置初始化
+bool Var::setInit(){
+    Var* init = initData;
+    if(!init) return false;
+    isInit = false;
+    if(externed) SEMERROR(DEC_INIT_DENY, name); // 声明不允许初始化
+    else if(!GenIR::typeCheck(this,init)){ // 类型不匹配
+        SEMERROR(VAR_INIT_ERR,name);
+    }
+    else if(init->literal){ // 初始值为常量
+        isInit = true;
+        if(init->isArr) ptrVal = init->name; // 数组必是字符串
+        else intVal = init->intVal;
+    }
+    else{ // 不是常量
+        if(scopePath.size() == 1){ // 全局变量
+            SEMERROR(GLB_INIT_ERR, name);// 全局变量初始值必须是常量
+        }else{ // 局部变量
+            return true;
+        }
+    }
+    return false;
+}
+
+// 获取void变量
+Var* Var::getVoid(){
+    return SymTab::voidVar;
+}
+
+// 获取步长变量，char 1字节，int 4字节
+Var* Var::getStep(Var* v){
+    if(v->isBase()) return SymTab::one;
+    else if(v->type == KW_CHAR) return SymTab::one;
+    else if(v->type == KW_INT) return SymTab::four;
+}
+
+//获取true变量
+Var* Var::getTrue(){
+    return SymTab::one;
 }
 
 // 获取变量名
@@ -186,9 +251,50 @@ vector<int>& Var::getPath(){
     return scopePath;
 }
 
+// 获取初始数据
+Var* Var::getInitData(){
+    return initData;
+}
+
+// 获取变量是否为左值
+bool Var::getLeft(){
+    return isLeft;
+}
+
+// 设置指针变量
+void Var::setPointer(Var* var){
+    ptr = var;
+}
+
+// 获取指针
+Var* Var::getPointer(){
+    return ptr;
+}
+
+// 获取是否为数组
+bool Var::getArray(){
+    return isArr;
+}
+
+// 获取是否为指针
+bool Var::getPtr(){
+    return isPtr;
+}
+
+
 // 是否为基本类型
 bool Var::isBase(){
     return !isArr && !isPtr;
+}
+
+// 是否为void类型变量
+bool Var::isVoid(){
+    return type==KW_VOID;
+}
+
+// 是否为引用类型
+bool Var::isRef(){
+    return !!ptr; // !! -> 把非零值变成1，零值还是零
 }
 
 //=================================================================================================//
@@ -232,6 +338,25 @@ bool Fun::match(Fun* f){
     return true;
 }
 
+// 形参实参匹配
+bool Fun::match(vector<Var*>& args){
+    if(paraVar.size() != args.size()){
+        return false;
+    }
+    int len = paraVar.size();
+    for(int i = 0; i < len; i++){
+        if(!GenIR::typeCheck(paraVar[i],args[i]))
+            return false;
+    }
+    return true;
+}
+
+// 保存函数定义信息
+void Fun::define(Fun* fun){
+    externed = false; // 说明此函数已经定义
+    paraVar = fun->getParaVar(); // 保存参数列表
+}
+
 // 设置extern
 void Fun::setExtern(bool ext){
     externed = ext;
@@ -255,6 +380,21 @@ vector<Var*>& Fun::getParaVar(){
 // 获取函数类型
 Tag Fun::getType(){
     return type;
+}
+
+// 设置返回点
+void Fun::setReturnPoint(InterInst* inst){
+    returnPoint = inst;
+}
+
+// 获取返回点
+InterInst* Fun::getReturnPoint(){
+    return returnPoint;
+}
+
+// 添加一条中间代码
+void Fun::addInst(InterInst *inst){
+    interCode.addInst(inst);
 }
 
 //进入一个新的作用域

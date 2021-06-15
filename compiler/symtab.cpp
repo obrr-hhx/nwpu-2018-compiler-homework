@@ -27,7 +27,7 @@ SymTab::SymTab()
 
 	scopeId=0;
 	curFun=NULL;
-	// ir=NULL;
+	ir=NULL;
 	scopePath.push_back(0);//全局作用域	
 }
 
@@ -153,6 +153,53 @@ void SymTab::decFun(Fun* f){
     }
 }
 
+// 定义函数
+void SymTab::defFun(Fun* fun){
+    if(fun->getExtern()){// extern不能在定义出现
+        SEMERROR(EXTERN_FUN_DEF,fun->getName());
+        fun->setExtern(false);
+    }
+    if(funTab.find(fun->getName()) == funTab.end()){// 函数表中没有此函数
+        funTab[fun->getName()] = fun;
+        funlist.push_back(fun->getName());
+    }else{
+        Fun* last = funTab[fun->getName()]; // 已经声明过
+        if(last->getExtern()){
+            if(!last->match(fun)){// 不匹配声明
+                SEMERROR(FUN_DEC_ERR,fun->getName());
+            }
+            last->define(fun); // 保存定义信息
+        }else
+            SEMERROR(FUN_RE_DEF, fun->getName());// 重复定义了
+        delete fun; // 删除当前函数对象
+        fun = last; // 公用函数体
+    }
+    curFun = fun;
+    // ir->genFunHead(curFun); // 产生函数入口
+}
+
+// 结束函数定义
+void SymTab::endDefFun(){
+    // ir->genFunTail(curFun); // 产生函数出口
+    curFun = NULL; // 当前函数定义结束，置为空
+}
+
+// 获取函数
+Fun* SymTab::getFun(string name, vector<Var*>& args){
+    if(funTab.find(name) != funTab.end()){ // 此函数存在在函数表中
+        Fun* last = funTab[name];
+        if(!last->match(args)){
+            SEMERROR(FUN_CALL_ERR, name);
+            return NULL;
+        }
+    }
+}
+
+// 获取当前函数
+Fun* SymTab::getCurFun(){
+    return curFun;
+}
+
 // 作用域进入
 void SymTab::enter(){
     scopeId++;
@@ -171,6 +218,12 @@ void SymTab::leave(){
 vector<int> &SymTab::getScopePath(){
     return scopePath;
 }
+
+void SymTab::addInst(InterInst*inst){
+    if(curFun) curFun->addInst(inst);
+    else delete inst;
+}
+
 
 // 输出信息
 void SymTab::toString(){

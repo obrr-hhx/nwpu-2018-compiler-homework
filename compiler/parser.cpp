@@ -4,10 +4,12 @@
 #include "error.h"
 #include "symbol.h"
 #include "symtab.h"
+#include "genir.h"
+#include "intercode.h"
 
 //语法分析器
-Parser::Parser(Lexer &lexer, SymTab &symtab)
-    :lexer(lexer), symtab(symtab)
+Parser::Parser(Lexer &lexer, SymTab &symtab, GenIR &ir)
+    :lexer(lexer), symtab(symtab), ir(ir)
 {}
 
 void Parser::analyse(){
@@ -247,9 +249,9 @@ void Parser::funtail(Fun* f){
     if(match(SEMICON)){// 函数声明
         symtab.decFun(f);
     }else{// 函数定义
-        // symtab.defFun(f);
+        symtab.defFun(f);
         block();
-        // symtab.endDefFun();// 结束函数定义
+        symtab.endDefFun();// 结束函数定义
     }
 }
 // <block> -> LBRACE <subprogram> RBRACE
@@ -278,14 +280,26 @@ void Parser::localdef(){
 
 // <altexpr> -> <expr> | ε
 Var* Parser::altexpr(){
-    
+    if(EXPR_FIRST) return expr();
+    else return Var::getVoid();
 }
 
 // <expr> -> <assexpr>
+Var* Parser::expr(){
+    return assexpr();
+}
 
 // <assexpr> -> <orexpr><asstail>
-
+Var* Parser::assexpr(){
+    Var* lvar = orexpr();
+    return asstail(lvar);
+}
 // <asstail> -> ASSIGN <orexpr><asstail> | ε
+Var* Parser::asstail(Var* lvar){
+    if(match(ASSIGN)){
+
+    }
+}
 
 // <orexpr> -> <andexpr><ortail>
 
@@ -363,19 +377,103 @@ void Parser::statement(){
 // <whilestat> -> KW_WHILE LPAREN <altexpr> RPAREN <block>
 void Parser::whilestat(){
     symtab.enter();
+    InterInst* _while, *_exit; // 标签
+    ir.genWhileHead(_while, _exit); // while循环头部
     match(KW_WHILE);
     if(!match(LPAREN)) recovery(EXPR_FIRST || F(RPAREN), LPAREN_LOST, LPAREN_WRONG);
-    altexpr();
+    Var* cond = altexpr();
+    ir.genWhileCond(cond, _exit); // while条件
     if(!match(RPAREN)) recovery(F(LBRACE), RPAREN_LOST, RPAREN_WRONG);
     block();
+    ir.genWhileTail(_while, _exit); // while尾部
     symtab.leave();
 }
 // <forstat> -> KW_FOR LPAREN <forinit><altexpr> SEMICON <altexpr> RPAREN <block>
 // <forinit> -> <localdef> | <altexpr> SEMICON
 
+// <dowhile> -> KW_DO <block> KW_WHILE LPAREN <altexpr> RPAREN SEMICON
+void Parser::dowhilestat(){
+    symtab.enter();
+    InterInst *_do, *_exit;
+    ir.genDoWhileHead(_do, _exit);
+    match(KW_DO);
+    block();
+    if(!match(KW_WHILE)) recovery(F(LPAREN), WHILE_LOST, WHILE_WRONG);
+    if(!match(LPAREN)) recovery(EXPR_FIRST||F(RPAREN), LPAREN_LOST, LPAREN_WRONG);
+    symtab.leave();
+    Var* cond = altexpr();
+    if(!match(RPAREN)) recovery(F(SEMICON), RPAREN_LOST, RPAREN_WRONG);
+    if(!match(SEMICON)) recovery(TYPE_FIRST||STATEMENT_FIRST||F(RBRACE), SEMICON_LOST, SEMICON_WRONG);
+    ir.genDoWhileTail(cond, _do, _exit);
+}
+
 // <ifstat> -> KW_IF LPAREN <expr> RPAREN <block><elsestat>
+void Parser::ifstat(){
+    symtab.enter();
+    InterInst *_else, *_exit; // 标签
+    match(KW_IF);
+    if(!match(LPAREN))
+        recovery(EXPR_FIRST, LPAREN_LOST, LPAREN_WRONG);
+    Var *cond = expr();
+    ir.genIfHead(cond, _else); // 生成if头部
+    if(!match(RPAREN))
+        recovery(F(LBRACE), RPAREN_LOST, RPAREN_WRONG);
+    block();
+    symtab.leave();
+    if(F(KW_ELSE)){
+        ir.genElseHead(_else,_exit); // 生成else头部
+        elsestat();
+        ir.genElseTail(_exit); // 生成else尾部
+    }else{
+        // 无else
+        ir.genIfTail(_else); // 生成if尾部
+    }
+}
+
 // <elsestat> -> KW_ELSE <block> | ε
+void Parser::elsestat(){
+    match(KW_ELSE);
+    symtab.enter();
+    if(F(LBRACE)) block();
+    else statement();
+    symtab.leave();
+}
 
 // <switchstat> -> KW_SWITCH LPAREN <expr> RPAREN LBRACE <casestat> RBRACE
+void Parser::swicthstat(){
+    symtab.enter();
+    InterInst *_exit;
+    ir.genSwitchHead(_exit);
+    match(KW_SWITCH);
+    if(!match(LPAREN)) recovery(EXPR_FIRST, LPAREN_LOST, LPAREN_WRONG);
+    Var *cond = expr();
+    if(cond->isRef()) cond = ir.genAssign(cond);
+    if(!match(RPAREN)) recovery(F(LBRACE), RPAREN_LOST, RPAREN_WRONG);
+    if(!match(LBRACE)) recovery(F(KW_CASE)_(KW_DEFAULT), LBRACE_LOST, LBRACE_WRONG);
+    casestat(cond);
+    if(!match(RBRACE)) recovery(TYPE_FIRST || STATEMENT_FIRST, RBRACE_LOST, RBRACE_WRONG);
+    ir.genSwitchTail(_exit);
+    symtab.leave();
+}
+
 // <casestat> -> KW_CASE <caselabel> COLON <subprogram><casestat> | KW_DEFAULT COLON <subprogram>
+void Parser::casestat(Var *cond){
+    if(match(KW_CASE)){
+        InterInst *_case_exit;
+        Var *lb = caselabel();
+        ir.genCaseHead(cond, lb, _case_exit);
+        if(match(COLON)) recovery(TYPE_FIRST||STATEMENT_FIRST, COLON_LOST, COLON_WRONG);
+        symtab.enter();
+        subprogram();
+        symtab.leave();
+        ir.genCaseTail(_case_exit);
+        casestat(cond);
+    }else if(match(KW_DEFAULT)){
+        if(!match(COLON)) recovery(TYPE_FIRST||STATEMENT_FIRST, COLON_LOST, COLON_WRONG);
+        symtab.enter();
+        subprogram();
+        symtab.leave();
+    }
+}
+
 // <caselable> -> <literal>

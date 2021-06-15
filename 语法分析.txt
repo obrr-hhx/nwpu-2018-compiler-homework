@@ -178,6 +178,10 @@ while循环语句
 
 <whilestat> -> KW_WHILE LPAREN <altexpr> RPAREN <block>
 
+dowhile循环语句
+
+<dowhilestat> -> KW_DO <block> KW_WHILE LPAREN <altexpr> RPAREN SEMICON
+
 for循环语句
 
 <forstat> -> KW_FOR LPAREN <forinit><altexpr> SEMICON <altexpr> RPAREN <block>

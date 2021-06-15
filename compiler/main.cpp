@@ -5,6 +5,8 @@
 #include"parser.h"
 #include"symtab.h"
 #include"symbol.h"
+#include"genir.h"
+#include"intercode.h"
 
 string varietyTable[48] = {
     "ERR",																					//错误，异常
@@ -44,7 +46,8 @@ int main(int argc, char *argv[]){
 		cout<<varietyTable[t->tag]<<endl;
 	}
 	SymTab symtab;
-	Parser parser(lex1,symtab);
+	GenIR ir(symtab);
+	Parser parser(lex1,symtab,ir);
 	parser.analyse();
 	symtab.toString();
 }
