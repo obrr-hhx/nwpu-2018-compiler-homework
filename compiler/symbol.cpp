@@ -166,6 +166,7 @@ void Var::setPtr(bool ptr){
 }
 
 void Var::setName(string n){
+    if(n=="") n = GenIR::genLb();
     name = n;
 }
 
@@ -297,6 +298,27 @@ bool Var::isRef(){
     return !!ptr; // !! -> 把非零值变成1，零值还是零
 }
 
+// 是否为基本类型常量
+bool Var::isLiteral(){
+    return this->literal&&isBase();
+}
+
+// 输出变量中间代码
+void Var::value(){
+    if(literal){
+        if(type==KW_INT){
+            printf("%d", intVal);
+        }else if(type==KW_CHAR){
+            if(isArr)
+                printf("%s", name.c_str());
+            else
+                printf("%d", charVal);
+        }
+    }else{
+        printf("%s", name.c_str());
+    }
+}
+
 //=================================================================================================//
 // 函数对象
 Fun::Fun(bool ext, Tag t, string n,vector<Var*>&paraList){
@@ -416,4 +438,30 @@ void Fun::locate(Var* var){
     scopeEsp.back() += size; // 累加作用域大小
     curEsp += size; // 累加栈指针位置
     var->setOffset(-curEsp); // 局部变量偏移为负数
+}
+
+// 输出函数信息
+void Fun::toString(){
+    printf("%s", tokenName[type]); // 输出type
+    printf("%s", name.c_str()); // 输出函数名
+    // 输出参数列表
+    printf("(");
+    for(int i= 0; i < paraVar.size(); i++){
+        printf("<%s>", paraVar[i]->getName().c_str());
+        if(i != paraVar.size()-1) printf(",");
+    }
+    printf(")");
+    if(externed) printf(";\n");
+    else{
+        printf(":\n");
+        printf("\t\tmaxDepth=%d\n",maxDepth);
+    }
+}
+
+// 打印中间代码
+void Fun::printInterCode(){
+    if(externed) return;
+    printf("====================<%s>Start====================\n", name.c_str());
+    interCode.toString();
+    printf("====================<%s>End====================\n", name.c_str());
 }

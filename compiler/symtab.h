@@ -50,6 +50,7 @@ public:
 
     // 输出信息
     void toString();
+    void printInterCode(); // 输出中间代码
 
     vector<int>& getScopePath();//获取scopePath
 };

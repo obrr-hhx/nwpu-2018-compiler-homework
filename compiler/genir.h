@@ -68,11 +68,15 @@ public:
     void genWhileTail(InterInst* &_while, InterInst* &_exit);
     void genDoWhileHead(InterInst* &_do, InterInst* &_exit);
     void genDoWhileTail(Var* cond, InterInst* _do, InterInst* _exit);
+    void genForHead(InterInst* &_for, InterInst* &_exit);
+    void genForCondBegin(Var* cond, InterInst* &_step, InterInst* &_block, InterInst* _exit);
+    void genForCondEnd(InterInst* _for, InterInst* _block);
+    void genForTail(InterInst* &_step, InterInst* &_exit);
 
     // 产生特殊语句
     void genBreak();
     void genContiue();
-    void genRenturn(Var* ret); // 产生返回语句
+    void genReturn(Var* ret); // 产生返回语句
     bool genVarInit(Var* var); // 产生变量初始化语句
     void genFunHead(Fun* fun); // 产生函数入口代码
     void genFunTail(Fun* fun); // 产生函数出口代码

@@ -63,11 +63,13 @@ public:
     bool getArray(); // 获取是否为数组
     bool getPtr(); // 获取是否为指针
 
-    void toString();
+    void toString(); // 输出变量信息
+    void value(); // 输出变量的中间代码形式
 
     bool isBase();// 是否为基本类型
     bool isRef(); // 是否为引用类型
     bool isVoid();// 是否为void类型变量
+    bool isLiteral(); // 是否为基本类型常量
 };
 
 //函数结构

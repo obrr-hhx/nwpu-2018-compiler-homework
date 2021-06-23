@@ -1,6 +1,7 @@
 #include "symtab.h"
 #include "error.h"
 #include "symbol.h"
+#include "genir.h"
 
 //打印语义错误
 #define SEMERROR(code,name) Error::semError(code,name)
@@ -76,10 +77,10 @@ void SymTab::addVar(Var* var){
             return;
         }
     }
-    // if(ir){
-    //     int flag = ir->genVarInit(var); // 变量初始化语句
-    //     if(curFun && flag) curFun->locate(var); // 计算局部变量栈帧偏移
-    // }
+    if(ir){
+        int flag = ir->genVarInit(var); // 变量初始化语句
+        if(curFun && flag) curFun->locate(var); // 计算局部变量栈帧偏移
+    }
 }
 
 // 添加字符串常量
@@ -144,6 +145,7 @@ void SymTab::decFun(Fun* f){
     f->setExtern(true);
     if(funTab.find(f->getName()) == funTab.end()){ // 函数表中没有此函数
         funTab[f->getName()] = f; // 在函数表中添加函数
+        funlist.push_back(f->getName());
     }else{// 函数表中有此函数，需要匹配检测
         Fun* existed = funTab[f->getName()];
         if(!existed->match(f)){
@@ -175,12 +177,12 @@ void SymTab::defFun(Fun* fun){
         fun = last; // 公用函数体
     }
     curFun = fun;
-    // ir->genFunHead(curFun); // 产生函数入口
+    ir->genFunHead(curFun); // 产生函数入口
 }
 
 // 结束函数定义
 void SymTab::endDefFun(){
-    // ir->genFunTail(curFun); // 产生函数出口
+    ir->genFunTail(curFun); // 产生函数出口
     curFun = NULL; // 当前函数定义结束，置为空
 }
 
@@ -192,7 +194,10 @@ Fun* SymTab::getFun(string name, vector<Var*>& args){
             SEMERROR(FUN_CALL_ERR, name);
             return NULL;
         }
+        return last;
     }
+    SEMERROR(FUN_UN_DEC,name);//函数未声明
+	return NULL;
 }
 
 // 获取当前函数
@@ -205,13 +210,13 @@ void SymTab::enter(){
     scopeId++;
     scopePath.push_back(scopeId);
     if(curFun)
-    curFun->enterScope();
+        curFun->enterScope();
 }
 // 作用域退出
 void SymTab::leave(){
     scopePath.pop_back();
     if(curFun)
-    curFun->leaveScope();
+        curFun->leaveScope();
 }
 
 //获取scopePath
@@ -224,6 +229,9 @@ void SymTab::addInst(InterInst*inst){
     else delete inst;
 }
 
+void SymTab::setIR(GenIR* ir){
+    this->ir = ir;
+}
 
 // 输出信息
 void SymTab::toString(){
@@ -238,5 +246,20 @@ void SymTab::toString(){
             list[j]->toString();
             printf("\n");
         }
+    }
+    printf("----------串表-----------\n");
+	unordered_map<string, Var*>::iterator strIt,strEnd=strTab.end();
+	for(strIt=strTab.begin();strIt!=strEnd;++strIt)
+		printf("%s=%s\n",strIt->second->getName().c_str(),strIt->second->getStrVal().c_str());
+	printf("----------函数表----------\n");
+	for(int i=0;i<funlist.size();i++){
+		funTab[funlist[i]]->toString();
+	}
+}
+
+// 输出中间代码
+void SymTab::printInterCode(){
+    for(int i = 0; i < funlist.size(); i++){
+        funTab[funlist[i]]->printInterCode();
     }
 }

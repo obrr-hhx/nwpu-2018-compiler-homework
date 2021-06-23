@@ -125,7 +125,7 @@ void Parser::idtail(bool ext, Tag t, bool ptr, string name){
 
 // <para> -> <type><paradata><paralist> | ε
 void Parser::para(vector<Var*> &list){
-    if(match(RPAREN)) return;
+    if(F(RPAREN)) return;
     Tag t = type();
     Var* v = paradata(t);
     symtab.addVar(v);// 保存参数到符号表
@@ -240,7 +240,7 @@ Var* Parser::defdata(bool ext, Tag t){
 Var* Parser::init(bool ext, Tag t, bool ptr, string name){
     Var* initVar = NULL;
     if(match(ASSIGN)){
-        // initVar = expr();
+        initVar = expr();
     }
     return new Var(symtab.getScopePath(), ext, t, ptr, name, initVar);//新的变量或指针
 }
@@ -294,56 +294,212 @@ Var* Parser::assexpr(){
     Var* lvar = orexpr();
     return asstail(lvar);
 }
-// <asstail> -> ASSIGN <orexpr><asstail> | ε
-Var* Parser::asstail(Var* lvar){
+// <asstail> -> ASSIGN <asstail> | ε
+Var* Parser::asstail(Var* lval){
     if(match(ASSIGN)){
-
+        Var* rval = assexpr();
+        Var* result = ir.genTwoOp(lval, ASSIGN, rval);
+        return asstail(result);
     }
+    return lval;
 }
 
 // <orexpr> -> <andexpr><ortail>
+Var* Parser::orexpr(){
+    Var* lval = andexper();
+    return ortail(lval);
+}
 
 // <ortail> -> OR <andexpr><ortail> | ε
+Var* Parser::ortail(Var* lval){
+    if(match(OR)){
+        Var* rval = andexper();
+        Var* result = ir.genTwoOp(lval, OR, rval);
+        return ortail(result);
+    }
+    return lval;
+}
 
 // <andexpr> -> <cmpexpr><andtail>
+Var* Parser::andexper(){
+    Var* lval = cmpexpr();
+    return andtail(lval);
+}
 
 // <andtail> -> AND <cmpexpr><andtail> | ε
+Var* Parser::andtail(Var* lval){
+    if(match(AND)){
+        Var* rval = cmpexpr();
+        Var* result = ir.genTwoOp(lval, AND, rval);
+        return andtail(result);
+    }
+    return lval;
+}
 
 // <cmpexpr> -> <aloexpr><cmptail>
+Var* Parser::cmpexpr(){
+    Var* lval = aloexpr();
+    return cmptail(lval);
+}
 
 // <cmptail> -> <cmps><aloexpr><cmptail> | ε
+Var* Parser::cmptail(Var* lval){
+    if(F(GT)_(GE)_(LT)_(LE)_(EQU)_(NEQU)){
+        Tag opt = cmps();
+        Var* rval = aloexpr();
+        Var* result = ir.genTwoOp(lval, opt, rval);
+        return cmptail(result);
+    }
+    return lval;
+}
 
 // <cmps> -> GT | GE | LT | LE | EQU | NEQU
+Tag Parser::cmps(){
+    Tag opt = look->tag;
+    move();
+    return opt;
+}
 
 // <aloexpr> -> <item><alotail>
+Var* Parser::aloexpr(){
+    Var* lval = item();
+    return alotail(lval);
+}
 
 // <alotail> -> <adds><item><alotail> | ε
+Var* Parser::alotail(Var* lval){
+    if(F(ADD)_(SUB)){
+        Tag opt = adds();
+        Var* rval = item();
+        Var* result = ir.genTwoOp(lval, opt, rval);
+        return alotail(result);
+    }
+    return lval;
+}
 
 // <adds> -> ADD | SUB
+Tag Parser::adds(){
+    Tag opt = look->tag;
+    move();
+    return opt;
+}
 
 // <item> -> <factor><itemtail>
+Var* Parser::item(){
+    Var* lval = factor();
+    return itemtail(lval);
+}
 
 // <itemtail> -> <muls><factor><itemtail> | ε
+Var* Parser::itemtail(Var* lval){
+    if(F(MUL)_(DIV)_(MOD)){
+        Tag opt = muls();
+        Var* rval = factor();
+        Var* result = ir.genTwoOp(lval, opt, rval);
+        return itemtail(result);
+    }
+    return lval;
+}
 
 // <muls> -> MUL | DIV | MOD
+Tag Parser::muls(){
+    Tag opt = look->tag;
+    move();
+    return opt;
+}
 
 // <factor> -> <lop><factor> | <val>
+Var* Parser::factor(){
+    if(F(NOT)_(SUB)_(LEA)_(MUL)_(INC)_(DEC)){
+        Tag opt = lop();
+        Var* v = factor();
+        return ir.genOneOpLeft(opt, v);
+    }
+    else 
+        return val();
+}
 
 // <lop> -> NOT | SUB | LEA | MUL | INCR | DECR
+Tag Parser::lop(){
+    Tag opt = look->tag;
+    move();
+    return opt;
+}
 
 // <val> -> <elem><rop>
+Var* Parser::val(){
+    Var* v = elem();
+    if(F(INC)_(DEC)){
+        Tag opt = rop();
+        return ir.genOneOpRight(v, opt);
+    }
+    else
+        return v;
+}
 
 // <rop> -> INCR | DECR ｜ε
+Tag Parser::rop(){
+    Tag opt = look->tag;
+    move();
+    return opt;
+}
 
 // <elem> -> ID <idexpr> | LPAREN <expr> RPAREN | <lieral>
+Var* Parser::elem(){
+    Var* v = NULL;
+    if(F(ID)){// 变量，数组，函数调用
+        string name = ((Id*)look)->name;
+        move();
+        v = idexpr(name);
+    }else if(match(LPAREN)){
+        v = expr();
+        if(!match(RPAREN)) recovery(LVAL_OPR, RPAREN_LOST, RBRACE_WRONG);
+    }else{
+        v = literal();
+    }
+    return v;
+}
 
 // <idexpr> -> LBRACK <expr> RBRACK | LPAREN <realarg> RPAREN | ε
+Var* Parser::idexpr(string name){
+    Var* v = NULL;
+    if(match(LBRACK)){ // 数组
+        Var* index = expr();
+        if(!match(RBRACK)) recovery(LVAL_OPR, RBRACK_LOST, RBRACK_WRONG);
+        Var* array = symtab.getVar(name); // 获取数组
+        v = ir.genArray(array, index);
+    }else if(match(LPAREN)){ // 函数
+        vector<Var*> args;
+        realarg(args);
+        if(!match(RPAREN)) recovery(RVAL_OPR, RPAREN_LOST, RPAREN_WRONG);
+        Fun* function = symtab.getFun(name,args); // 获取函数
+        v = ir.genCall(function, args); // 生成函数调用代码
+    }else{
+        v = symtab.getVar(name); // 获取变量
+    }
+    return v;
+}
 
 // <realarg> -> <arg><arglist> | ε
+void Parser::realarg(vector<Var*>& args){
+    if(EXPR_FIRST){
+        args.push_back(arg()); // 把参数压入
+        arglist(args);
+    }
+}
 
 // <arglist> - > COMMA <arg><arglist> | ε
+void Parser::arglist(vector<Var*>& args){
+    if(match(COMMA)){
+        args.push_back(arg()); // 把参数压入
+        arglist(args);
+    }
+}
 
 // <arg> -> <expr>
+Var* Parser::arg(){
+    return expr();
+}
 
 // <literal> -> NUM | CH | STR
 Var* Parser::literal(){
@@ -371,7 +527,42 @@ Var* Parser::literal(){
 //                KW_CONTINUE SEMICON | 
 //                KW_RETURN <altexpr> SEMICON
 void Parser::statement(){
-    
+    switch (look->tag)
+    {
+    case KW_WHILE:
+        whilestat();
+        break;
+    case KW_FOR:
+        forstat();
+        break;
+    case KW_IF:
+        ifstat();
+        break;
+    case KW_DO:
+        dowhilestat();
+        break;
+    case KW_SWITCH:
+        swicthstat();
+        break;
+    case KW_BREAK:
+        ir.genBreak();
+        move();
+        if(!match(SEMICON)) recovery(TYPE_FIRST||STATEMENT_FIRST||F(RBRACE),SEMICON_LOST,SEMICON_WRONG);
+        break;
+    case KW_CONTINUE:
+        ir.genContiue();
+        move();
+        if(!match(SEMICON)) recovery(TYPE_FIRST||STATEMENT_FIRST||F(RBRACE),SEMICON_LOST,SEMICON_WRONG);
+        break;
+    case KW_RETURN:
+        move();
+        ir.genReturn(altexpr());
+        if(!match(SEMICON)) recovery(TYPE_FIRST||STATEMENT_FIRST||F(RBRACE),SEMICON_LOST,SEMICON_WRONG);
+        break;
+    default:
+        altexpr();
+        if(!match(SEMICON)) recovery(TYPE_FIRST||STATEMENT_FIRST||F(RBRACE), SEMICON_LOST, SEMICON_WRONG);
+    }
 }
 
 // <whilestat> -> KW_WHILE LPAREN <altexpr> RPAREN <block>
@@ -388,8 +579,34 @@ void Parser::whilestat(){
     ir.genWhileTail(_while, _exit); // while尾部
     symtab.leave();
 }
+
 // <forstat> -> KW_FOR LPAREN <forinit><altexpr> SEMICON <altexpr> RPAREN <block>
+void Parser::forstat(){
+    symtab.enter();
+    InterInst *_for, *_exit, *_step, *_block;
+    match(KW_FOR);
+    if(!match(LPAREN)) recovery(TYPE_FIRST || EXPR_FIRST || F(SEMICON), LPAREN_LOST, LPAREN_WRONG);
+    forinit();
+    ir.genForHead(_for, _exit);
+    Var* cond = altexpr();
+    ir.genForCondBegin(cond, _step, _block, _exit);
+    if(!match(SEMICON)) recovery(EXPR_FIRST, SEMICON_LOST, SEMICON_WRONG);
+    altexpr();
+    if(!match(RPAREN)) recovery(F(LBRACE), RPAREN_LOST, RPAREN_WRONG);
+    ir.genForCondEnd(_for, _block);
+    block();
+    ir.genForTail(_step, _exit);
+    symtab.leave();
+}
+
 // <forinit> -> <localdef> | <altexpr> SEMICON
+void Parser::forinit(){
+    if(TYPE_FIRST) localdef();
+    else{
+        altexpr();
+        if(!match(SEMICON)) recovery(EXPR_FIRST, SEMICON_LOST, SEMICON_WRONG);
+    }
+}
 
 // <dowhile> -> KW_DO <block> KW_WHILE LPAREN <altexpr> RPAREN SEMICON
 void Parser::dowhilestat(){
@@ -462,7 +679,7 @@ void Parser::casestat(Var *cond){
         InterInst *_case_exit;
         Var *lb = caselabel();
         ir.genCaseHead(cond, lb, _case_exit);
-        if(match(COLON)) recovery(TYPE_FIRST||STATEMENT_FIRST, COLON_LOST, COLON_WRONG);
+        if(!match(COLON)) recovery(TYPE_FIRST||STATEMENT_FIRST, COLON_LOST, COLON_WRONG);
         symtab.enter();
         subprogram();
         symtab.leave();
@@ -477,3 +694,6 @@ void Parser::casestat(Var *cond){
 }
 
 // <caselable> -> <literal>
+Var* Parser::caselabel(){
+    return literal();
+}

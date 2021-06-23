@@ -35,19 +35,19 @@ int main(int argc, char *argv[]){
 	cout<<file<<endl;
 	const char* name = file.c_str();
 	Scanner scanner(name);
-	Scanner scanner1(name);
 	Lexer lex(scanner);
-	Lexer lex1(scanner1);
+	// Lexer lex1(scanner1);
 	Error error(&scanner);
-	Token* t = lex.tokenize();
-	cout<<varietyTable[t->tag]<<endl;
-	while(t->tag != END){
-		t = lex.tokenize();
-		cout<<varietyTable[t->tag]<<endl;
-	}
+	// Token* t = lex.tokenize();
+	// cout<<varietyTable[t->tag]<<endl;
+	// while(t->tag != END){
+	// 	t = lex.tokenize();
+	// 	cout<<varietyTable[t->tag]<<endl;
+	// }
 	SymTab symtab;
 	GenIR ir(symtab);
-	Parser parser(lex1,symtab,ir);
+	Parser parser(lex,symtab,ir);
 	parser.analyse();
 	symtab.toString();
+	symtab.printInterCode();
 }

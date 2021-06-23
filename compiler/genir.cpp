@@ -10,7 +10,19 @@
 int GenIR::labelNum = 0;
 
 GenIR::GenIR(SymTab& tab):symtab(tab){
+    symtab.setIR(this);//构建符号表与代码生成器的一一关系
+	labelNum=0;
+	push(NULL,NULL);//初始化作用域 
+}
 
+void GenIR::push(InterInst*head,InterInst*tail){
+    heads.push_back(head);
+    tails.push_back(tail);
+}
+
+void GenIR::pop(){
+    heads.pop_back();
+    tails.pop_back();
 }
 
 // 产生变量初始化语句
@@ -19,8 +31,8 @@ bool GenIR::genVarInit(Var* var){
     symtab.addInst(new InterInst(OP_DEC, var));
     if(var->setInit()){// 非常量初始化，生成赋值语句代码
         genTwoOp(var, ASSIGN, var->getInitData()); // 双操作数运算表达式代码生成
-        return true;
     }
+    return true;
 }
 
 // 或
@@ -146,10 +158,12 @@ Var* GenIR::genSub(Var* lval, Var* rval){
         SEMERROR(EXPR_NOT_BASE);
         return lval;
     }
-    if(!lval->isBase()){ // 左值为数组或或者指针时
+    if(lval->getArray() || lval->getPtr()){ // 左值为数组或或者指针时
         tmp = new Var(symtab.getScopePath(), lval);
         rval = genMul(rval, Var::getStep(lval));
-    }
+    }else{//基本类型
+		tmp=new Var(symtab.getScopePath(),KW_INT,false);//基本类型
+	}
     symtab.addVar(tmp);
     // tmp = lval-rval
     symtab.addInst(new InterInst(OP_SUB, tmp,lval, rval));
@@ -243,32 +257,16 @@ Var* GenIR::genOneOpRight(Var* val, Tag opt){
 // 右自加
 Var* GenIR::genIncR(Var* val){ // 后缀自加先返回操作数的值
     Var* tmp = genAssign(val); // 复制，tmp=val
-    if(val->isRef()){ // *p++
-        // t1 = *p
-        // t2 = t1+1
-        // *p = t2
-        Var* t2 = genAdd(tmp, Var::getStep(val));
-        genAssign(val,t2);
-    }else{
-        // val = val+1
-        symtab.addInst(new InterInst(OP_ADD, val, val, Var::getStep(val)));
-    }
+    // val = val+1
+    symtab.addInst(new InterInst(OP_ADD, val, val, Var::getStep(val)));
     return tmp;
 }
 
 // 右自减
 Var* GenIR::genDecR(Var* val){ // 后缀自减先返回操作数的值
-    Var* tmp = genAssign(val); // 复制，tmp=val
-    if(val->isRef()){ // *p--
-        // t1 = *p
-        // t2 = t1-1
-        // *p = t2
-        Var* t2 = genSub(tmp, Var::getStep(val));
-        genAssign(val,t2);
-    }else{
-        // val = val-1
-        symtab.addInst(new InterInst(OP_SUB, val, val, Var::getStep(val)));
-    }
+    Var* tmp = genAssign(val); // 复制，tmp=val   
+    // val = val-1
+    symtab.addInst(new InterInst(OP_SUB, val, val, Var::getStep(val)));  
     return tmp;
 }
 
@@ -303,19 +301,6 @@ Var* GenIR::genLea(Var* val){
         symtab.addInst(new InterInst(OP_LEA, tmp, val));
         return tmp;
     }
-}
-
-// 指针取值
-Var* GenIR::genPtr(Var* val){
-    if(val->isBase()){
-        SEMERROR(EXPR_IS_BASE); // 基本类型不能取值
-        return val;
-    }
-    Var* tmp = new Var(symtab.getScopePath(), val->getType(), false);
-    tmp->setLeft(true);
-    tmp->setPointer(val);
-    symtab.addVar(tmp); // 产生表达式需要根据使用者判断，推迟！
-    return tmp;
 }
 
 // 左自增
@@ -430,7 +415,7 @@ Var* GenIR::genArray(Var* array, Var* index){
 }
 
 // 产生返回语句
-void GenIR::genRenturn(Var* ret){
+void GenIR::genReturn(Var* ret){
     if(!ret) return;
     Fun *fun = symtab.getCurFun();
     if(ret->isVoid()&&fun->getType()!=KW_VOID || ret->isBase()&&fun->getType()==KW_VOID){
@@ -584,6 +569,62 @@ void GenIR::genDoWhileTail(Var* cond, InterInst* _do, InterInst* _exit){
     }
     symtab.addInst(_exit);
     pop();
+}
+
+/*
+    do init
+_for:
+    do cond
+    OP_JF _exit cond
+    OP_JMP _block
+_step:
+    do step
+    OP_JMP _for
+_block:
+    do loop
+    OP_JMP _step
+_exit:
+*/
+void GenIR::genForHead(InterInst*& _for, InterInst*& _exit){
+    _for = new InterInst();
+    _exit = new InterInst();
+    symtab.addInst(_for);
+}
+
+void GenIR::genForCondBegin(Var* cond, InterInst*& _step, InterInst*& _block, InterInst* _exit){
+    _block = new InterInst();
+    _step = new InterInst();
+    if(cond){
+        if(cond->isVoid()) cond = Var::getTrue();
+        else if(cond->isRef()) cond = genAssign(cond);
+        symtab.addInst(new InterInst(OP_JF, _exit, cond));
+        symtab.addInst(new InterInst(OP_JMP,_block));
+    }
+    symtab.addInst(_step);
+    push(_step,_exit);
+}
+
+void GenIR::genForCondEnd(InterInst* _for, InterInst* _block){
+    symtab.addInst(new InterInst(OP_JMP, _for));
+    symtab.addInst(_block);
+}
+
+void GenIR::genForTail(InterInst*& _step, InterInst*& _exit){
+    symtab.addInst(new InterInst(OP_JMP, _step));
+    symtab.addInst(_exit);
+    pop();
+}
+
+void GenIR::genBreak(){
+    InterInst* tail = tails.back();
+    if(tail) symtab.addInst(new InterInst(OP_JMP, tail));
+    else SEMERROR(BREAK_ERR); // break不在循环或者switch-case中
+}
+
+void GenIR::genContiue(){
+    InterInst* head = heads.back();
+    if(head) symtab.addInst(new InterInst(OP_JMP, head));
+    else SEMERROR(CONTINUE_ERR);
 }
 
 // 产生唯一标签
