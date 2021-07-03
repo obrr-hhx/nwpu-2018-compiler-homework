@@ -23,6 +23,24 @@ public:
 	InterInst ();//产生唯一标号
 	InterInst (Operator op,InterInst *tar,Var *arg1=NULL,Var *arg2=NULL);//条件跳转指令,return
 
+    bool isJcond(); // 是否是条件转移指令JT,JF,Jcond
+    bool isJmp(); //是否直接转移指令JMP,return
+	bool isFirst(); //是首指令
+	bool isLb(); //是否是标签
+	bool isDec(); //是否是声明
+	bool isExpr(); //是基本类型表达式运算,可以对指针取值
+	bool unknown(); //不确定运算结果影响的运算(指针赋值，函数调用)
+	
+	Operator getOp(); //获取操作符
+	void callToProc(); //替换操作符，用于将CALL转化为PROC
+	InterInst* getTarget(); //获取跳转指令的目标指令
+	Var* getResult(); //获取返回值
+	Var* getArg1(); //获取第一个参数
+	Var* getArg2(); //获取第二个参数
+	string getLabel(); //获取标签
+	Fun* getFun(); //获取函数对象
+	void setArg1(Var*arg1); //设置第一个参数
+
     void toString();
 };
 

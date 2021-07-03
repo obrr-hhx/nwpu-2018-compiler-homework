@@ -226,7 +226,6 @@ Var* Parser::defdata(bool ext, Tag t){
         if(F(ID)){
             name = ((Id*)look)->name;
             move();
-            return varrdef(ext,t,true,name);
         }else{
             recovery(F(COMMA)_(ASSIGN)_(SEMICON), ID_LOST, ID_WRONG);
         }

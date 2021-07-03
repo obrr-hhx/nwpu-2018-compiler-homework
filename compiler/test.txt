@@ -1,11 +1,19 @@
+int glb = 10;
+char* str = "hello,world";
+
+int add(int a, int b);
+
 int main()
 {
-	int b = 5, c = 0;	
-	do
-	{
-		c = c + 1;
-	} while(b <= 10);
-	
-	return 0;
+    int a=1;
+    int b=1;
+    int c;
+    c = add(a,b);
+    return 0;
+}
+
+int add(int a, int b){
+    int c = a+b;
+    return c;
 }
 

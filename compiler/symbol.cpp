@@ -3,6 +3,8 @@
 #include "token.h"
 #include "symtab.h"
 #include "genir.h"
+#include "selector.h"
+#include "platform.h"
 
 #define SEMERROR(code, name) Error::semError(code,name)
 
@@ -26,9 +28,10 @@ Var::Var(Token*lt){
         break;
     case STR:
         setType(KW_CHAR);
-        // name = Gencode::genLb(); //唯一生成一个新的名字
+        name = GenIR::genLb(); //唯一生成一个新的名字
         strVal = ((Str*)lt)->str;
         setArray(strVal.size()+1); // 字符串作为字符数组储存
+        break;
     }
 }
 
@@ -107,6 +110,8 @@ void Var::clear(){
 	ptr=NULL;//没有指向当前变量的指针变量
 	// index=-1;//无效索引
 	initData=NULL;
+    regId=-1;
+    inMem=false;
 }
 
 // 输出信息
@@ -205,6 +210,12 @@ bool Var::setInit(){
     return false;
 }
 
+// 没有被初始化
+bool Var::unInit(){
+    if(isInit) return false;
+    else return true;
+}
+
 // 获取void变量
 Var* Var::getVoid(){
     return SymTab::voidVar;
@@ -232,6 +243,11 @@ Tag Var::getType(){
     return type;
 }
 
+// 获取变量值
+int Var::getVal(){
+    return intVal;
+}
+
 // 获取变量大小
 int Var::getSize(){
     return size;
@@ -242,10 +258,35 @@ void Var::setOffset(int off){
     offset = off;
 }
 
+int Var::getOffset(){
+    return offset;
+}
+
 // 获取字符串常量值
 string Var::getStrVal(){
     return strVal;
 }
+
+/*
+    获取字符串常量原始内容，将特殊字符转义
+*/
+string Var::getRawStr(){
+    string raw;
+    for(int i=0; i<strVal.size(); i++){
+        switch (strVal[i])
+        {
+            case '\n':raw.append("\\n");break;
+            case '\t':raw.append("\\t");break;
+            case '\0':raw.append("\\000");break;
+            case '\\':raw.append("\\\\");break;
+            case '\"':raw.append("\\\"");break;
+            default:raw.push_back(strVal[i]);
+        }
+    }
+    raw.append("\\000"); //结束标记
+    return raw;
+}
+
 
 //获取scopePath
 vector<int>& Var::getPath(){
@@ -272,6 +313,11 @@ Var* Var::getPointer(){
     return ptr;
 }
 
+// 获取字符指针内容
+string Var::getPtrVal(){
+    return ptrVal;
+}
+
 // 获取是否为数组
 bool Var::getArray(){
     return isArr;
@@ -281,7 +327,6 @@ bool Var::getArray(){
 bool Var::getPtr(){
     return isPtr;
 }
-
 
 // 是否为基本类型
 bool Var::isBase(){
@@ -301,6 +346,18 @@ bool Var::isRef(){
 // 是否为基本类型常量
 bool Var::isLiteral(){
     return this->literal&&isBase();
+}
+
+bool Var::isChar(){
+    return (type==KW_CHAR) && isBase();
+}
+
+bool Var::isCharPtr(){
+    return (type==KW_CHAR) && !isBase();
+}
+
+bool Var::notConst(){
+    return !literal;
 }
 
 // 输出变量中间代码
@@ -326,12 +383,13 @@ Fun::Fun(bool ext, Tag t, string n,vector<Var*>&paraList){
     type = t;
     name = n;
     paraVar = paraList;
-    curEsp = 0;
-    maxDepth = 0;
+    curEsp = Plat::stackBase;
+    maxDepth = Plat::stackBase;
     // 计算参数相对于栈帧基址的偏移，从8字节开始，参数传递固定为4字节，偏移都为正值
-    for(int i = 0, argOff = 8; i < paraVar.size(); i++, argOff+=4){
+    for(int i = 0, argOff = 4; i < paraVar.size(); i++, argOff+=4){
         paraVar[i]->setOffset(argOff);
     }
+    relocated=false;
 }
 
 Fun::~Fun(){
@@ -399,6 +457,15 @@ vector<Var*>& Fun::getParaVar(){
     return paraVar;
 }
 
+int Fun::getMaxDepth(){
+    return maxDepth;
+}
+
+void Fun::setMaxDepth(int dep){
+    maxDepth = dep;
+    relocated = true;
+}
+
 // 获取函数类型
 Tag Fun::getType(){
     return type;
@@ -440,6 +507,11 @@ void Fun::locate(Var* var){
     var->setOffset(-curEsp); // 局部变量偏移为负数
 }
 
+// 栈帧重定位？
+bool Fun::isRelocated(){
+    return relocated;
+}
+
 // 输出函数信息
 void Fun::toString(){
     printf("%s", tokenName[type]); // 输出type
@@ -464,4 +536,19 @@ void Fun::printInterCode(){
     printf("====================<%s>Start====================\n", name.c_str());
     interCode.toString();
     printf("====================<%s>End====================\n", name.c_str());
+}
+
+void Fun::genAsm(FILE*file){
+    if(externed) return;
+
+    vector<InterInst*> code;
+    code = interCode.getCode();
+    const char* pname = name.c_str();
+    fprintf(file, "#procedure %s code\n", pname);
+    fprintf(file, "\t.global %s\n", pname); // .global fun\n
+    fprintf(file, "%s:\n", pname);
+    ILoc il;
+    Selector sl(code,il);
+    sl.select();
+    il.outPut(file);
 }

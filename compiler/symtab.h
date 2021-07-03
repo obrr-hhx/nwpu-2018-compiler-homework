@@ -53,4 +53,7 @@ public:
     void printInterCode(); // 输出中间代码
 
     vector<int>& getScopePath();//获取scopePath
+
+    void genData(FILE *file); // 输出数据段
+    void genAsm(const char *fileName); // 输出汇编
 };

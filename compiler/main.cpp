@@ -50,4 +50,5 @@ int main(int argc, char *argv[]){
 	parser.analyse();
 	symtab.toString();
 	symtab.printInterCode();
+	symtab.genAsm(name);
 }

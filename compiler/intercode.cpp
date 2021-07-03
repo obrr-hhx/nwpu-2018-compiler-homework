@@ -56,6 +56,64 @@ InterInst::InterInst(Operator op,InterInst *tar,Var *arg1,Var *arg2){
     this->arg2 = arg2;
 }
 
+bool InterInst::isJcond(){
+    return op>=OP_JT&&op<=OP_JNE;
+}
+
+bool InterInst::isJmp(){
+    return op==OP_JMP||op==OP_RET||op==OP_RETV;
+}
+
+bool InterInst::isLb(){
+    return label!="";
+}
+
+// 是基本类型表达式运算，可以对指针取值
+bool InterInst::isExpr(){
+    return (op>=OP_AS&&op<=OP_OR||op==OP_GET);
+}
+
+bool InterInst::unknown(){
+    return op==OP_SET||op==OP_PROC||op==OP_CALL;
+}
+
+Operator InterInst::getOp(){
+    return op;
+}
+
+InterInst* InterInst::getTarget(){
+    return target;
+}
+
+Var* InterInst::getResult(){
+    return result;
+}
+
+void InterInst::setArg1(Var*arg1){
+    this->arg1==arg1;
+}
+
+// 是否是声明
+bool InterInst::isDec(){
+    return op==OP_DEC;
+}
+
+Var* InterInst::getArg1(){
+    return arg1;
+}
+
+Var* InterInst::getArg2(){
+    return arg2;
+}
+
+string InterInst::getLabel(){
+    return label;
+}
+
+Fun* InterInst::getFun(){
+    return fun;
+}
+
 // 输出指令
 void InterInst::toString(){
     if(label != ""){

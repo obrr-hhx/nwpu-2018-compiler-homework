@@ -53,7 +53,9 @@ public:
     vector<int> &getPath();//获取scopePath
     int getSize();// 获取变量大小
     void setOffset(int off);
+    int getOffset();
     string getStrVal();
+    string getRawStr();
     void setLeft(bool lf);//设置变量的左值属性
     Tag getType();
     Var* getInitData();
@@ -62,14 +64,24 @@ public:
     Var* getPointer();// 获取指向变量的指针
     bool getArray(); // 获取是否为数组
     bool getPtr(); // 获取是否为指针
+    int getVal(); // 获取变量值
+    string getPtrVal(); // 获取字符指针内容
 
     void toString(); // 输出变量信息
     void value(); // 输出变量的中间代码形式
 
+    bool unInit(); // 没有被初始化
     bool isBase();// 是否为基本类型
     bool isRef(); // 是否为引用类型
     bool isVoid();// 是否为void类型变量
     bool isLiteral(); // 是否为基本类型常量
+    bool isChar(); // 判断是否是字符变量
+    bool isCharPtr(); // 判断字符指针
+    bool notConst(); // 非常量
+
+    //寄存器分配信息
+    int regId; // -1表示在内存
+    bool inMem;
 };
 
 //函数结构
@@ -116,8 +128,10 @@ public:
 	void setExtern(bool ext);//设置extern
 	Tag getType();//获取函数类型
 	string& getName();//获取名字
-	// bool isRelocated();//栈帧重定位了？
+	bool isRelocated();//栈帧重定位了？
 	vector<Var*>& getParaVar();//获取参数列表，用于为参数生成加载代码
+    int getMaxDepth();
+    void setMaxDepth(int dep);
 	void toString();//输出信息
 	void printInterCode();//输出中间代码
 	void printOptCode();//输出优化后的中间代码

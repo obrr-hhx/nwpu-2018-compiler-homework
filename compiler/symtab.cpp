@@ -85,15 +85,15 @@ void SymTab::addVar(Var* var){
 
 // 添加字符串常量
 void SymTab::addStr(Var* v){
-    unordered_map<string, Var*>::iterator strIt, strEnd = strTab.end();
-    for(strIt = strTab.begin(); strIt != strEnd; ++strIt){// 判断字符串常量是否已存在
-        Var* str = strIt->second;
-        if(str->getStrVal() == v->getStrVal()){// 字符串常量已存在
-            delete v;
-            v = str;
-            return;
-        }
-    }
+    // unordered_map<string, Var*>::iterator strIt, strEnd = strTab.end();
+    // for(strIt = strTab.begin(); strIt != strEnd; ++strIt){// 判断字符串常量是否已存在
+    //     Var* str = strIt->second;
+    //     if(str->getStrVal() == v->getStrVal()){// 字符串常量已存在
+    //         delete v;
+    //         v = str;
+    //         return;
+    //     }
+    // }
     strTab[v->getName()] = v;
 }
 
@@ -262,4 +262,57 @@ void SymTab::printInterCode(){
     for(int i = 0; i < funlist.size(); i++){
         funTab[funlist[i]]->printInterCode();
     }
+}
+
+// 生成数据段代码
+void SymTab::genData(FILE *file){
+    // 进行数据段的存储，生成常量字符串，.rodata段
+    fprintf(file, ".section .rodata\n");
+    // 常量字符串
+    unordered_map<string, Var*>::iterator strIt,strEnd=strTab.end();
+    for(strIt=strTab.begin(); strIt!=strEnd; strIt++){
+        Var *str = strIt->second;
+        fprintf(file, "%s:\n", str->getName().c_str());
+        fprintf(file, "\t.ascii \"%s\"\n", str->getRawStr().c_str());
+    }
+    // 生成数据段和.bss段
+    fprintf(file, ".data\n");
+    vector<Var*> glbVars = getGlbVars();
+    for(unsigned int i = 0; i < glbVars.size(); i++){
+        Var* var = glbVars[i];
+        fprintf(file, "\t.global %s\n", var->getName().c_str());
+        if(!var->unInit()){// 如果变量被初始化了
+            fprintf(file, "%s:\n", var->getName().c_str());// var:
+            if(var->isBase()){
+                const char* t = var->isChar() ? ".byte" : ".word";
+                fprintf(file, "\t%s %d\n", t, var->getVal());// .byte  value   .word   value
+            }else{// 字符指针初始化
+                fprintf(file, "\t.word %s\n", var->getPtrVal().c_str());// .word    .L0
+            }
+        }else{ // 放在bss段
+            fprintf(file, "\t.comm %s,%d\n", var->getName().c_str(), var->getSize());// var:  .space  n
+        }
+    }
+}
+
+// 输出汇编文件
+void SymTab::genAsm(const char *fileName){
+    string newName = fileName;
+    int idx = newName.rfind(".txt");
+    if(idx>0 && idx==newName.length()-4){
+        newName.replace(idx,4,".asm");
+    }else{
+        newName = newName+".asm";
+    }
+
+    FILE* file = fopen(newName.c_str(), "w"); // 创建输出文件
+
+    // 生成数据段
+    genData(file);
+    // 生成代码段
+    fprintf(file, ".text\n");
+    for(int i=0; i<funlist.size(); i++){
+        funTab[funlist[i]]->genAsm(file);
+    }
+    fclose(file);
 }
