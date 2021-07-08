@@ -2,7 +2,7 @@
 #include "common.h"
 
 /*
-    ARM平台信息
+    ARM&MIPS平台信息
 */
 class Plat{
 
@@ -22,7 +22,11 @@ public:
 		栈基址fp指向pc，继续入栈需要在偏移12字节基础之上！
 	*/
 	static const int regNum=8;//可使用的通用寄存器的个数r0-r7
+    static const int regNum_mips=10;
 	static const char* regName[regNum];//可以使用的通用寄存器的个数
+    static const char* regName_mips[regNum_mips]; // 可以使用的mips寄存器
 	static const int stackBase=12;//不加保护现场的栈基址=12
+    static const int stackBase_mips=4;
 	static const int stackBase_protect=12+regNum*4;//加保护现场的栈基址=12+sizeof({r0-r7})=44
+	static const int stackBase_protect_mips=4+regNum*4;//加保护现场的栈基址=4+sizeof({s0-s7})=36
 };

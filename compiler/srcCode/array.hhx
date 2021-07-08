@@ -1,0 +1,38 @@
+int fun();
+int fun2(int array[10]);
+
+int main(){
+    int array[10];
+    int a,b;
+    //int idx = 0;
+
+    for(int i=0; i<10; i++){
+        array[i] = i;
+    }
+
+    //a = array[9];
+    //array[idx+1] = 10;
+    //array[array[0]] = 10;
+    //array[fun()] = 10;
+
+    a = fun2(array);
+
+    for(int i=0; i<10; i++){
+        b = array[i];
+    }
+
+    return 0;
+}
+
+int fun(){
+    return 2;
+}
+
+int fun2(int array[10]){
+    int c;
+    for(int i=0; i<10; i++){
+        array[i] = i+1;
+        c = array[i];
+    }
+    return 0;
+}

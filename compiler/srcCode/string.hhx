@@ -1,0 +1,19 @@
+char* str = "hello, world";
+
+int main(){
+    char* str2 = "hello, compiler";
+    char ch = 'h';
+    char character[5];
+    char *p;
+
+    char* localStr = str;
+
+    p = character;
+
+    for(int i=0; i<5; i++){
+        *p = ch;
+        p++;
+    }
+
+    return 0;
+}

@@ -16,12 +16,16 @@ class InterInst{
     void init();
 
 public:
+
+
     //构造
 	InterInst (Operator op,Var *rs,Var *arg1,Var *arg2=NULL);//一般运算指令
 	InterInst (Operator op,Fun *fun,Var *rs=NULL);//函数调用指令,ENTRY,EXIT
 	InterInst (Operator op,Var *arg1=NULL);//参数进栈指令,NOP
 	InterInst ();//产生唯一标号
 	InterInst (Operator op,InterInst *tar,Var *arg1=NULL,Var *arg2=NULL);//条件跳转指令,return
+
+    void setFirst(); // 设置首指令
 
     bool isJcond(); // 是否是条件转移指令JT,JF,Jcond
     bool isJmp(); //是否直接转移指令JMP,return
@@ -51,6 +55,8 @@ public:
     ~InterCode(); // 销毁中间代码
 
     void addInst(InterInst * inst); // 添加中间代码
+
+    void markFirst();// 标识“首指令”
 
     void toString(); // 输出中间代码
     vector<InterInst*>& getCode(); // 获取中间代码序列

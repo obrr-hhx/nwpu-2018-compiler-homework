@@ -6,6 +6,7 @@
 #include "symtab.h"
 #include "genir.h"
 #include "intercode.h"
+#include "compiler.h"
 
 //语法分析器
 Parser::Parser(Lexer &lexer, SymTab &symtab, GenIR &ir)
@@ -19,6 +20,9 @@ void Parser::analyse(){
 
 void Parser::move(){
     look = lexer.tokenize();
+    if(Args::showToken){
+        printf("%s\n",Lexer::varietyTable[look->tag].c_str());
+    }
 }
 
 bool Parser::match(Tag need){
@@ -57,7 +61,7 @@ void Parser::recovery(bool cond, SynError lost, SynError wrong){
 //右值运算
 #define RVAL_OPR F(OR)_(AND)_(GT)_(GE)_(LT)_(LE)_(EQU)_(NEQU)_(ADD)_(SUB)_(MUL)_(DIV)_(MOD)
 //语句
-#define STATEMENT_FIRST F(EXPR_FIRST)_(SEMICON)_(KW_WHILE)_(KW_FOR)_(KW_DO)_(KW_IF)_(KW_SWITCH)_(KW_RETURN)_(KW_BREAK)_(KW_CONTINUE)
+#define STATEMENT_FIRST (EXPR_FIRST)_(SEMICON)_(KW_WHILE)_(KW_FOR)_(KW_DO)_(KW_IF)_(KW_SWITCH)_(KW_RETURN)_(KW_BREAK)_(KW_CONTINUE)
 
 // <program> -> <segment><program> | ε
 void Parser::program(){
@@ -472,6 +476,7 @@ Var* Parser::idexpr(string name){
         realarg(args);
         if(!match(RPAREN)) recovery(RVAL_OPR, RPAREN_LOST, RPAREN_WRONG);
         Fun* function = symtab.getFun(name,args); // 获取函数
+        symtab.getCurFun()->setLeaf(); // 有函数调用，不是叶子函数
         v = ir.genCall(function, args); // 生成函数调用代码
     }else{
         v = symtab.getVar(name); // 获取变量

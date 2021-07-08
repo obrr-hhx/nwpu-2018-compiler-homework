@@ -2,6 +2,7 @@
 #include"lexer.h"
 #include"token.h"
 #include"error.h"
+#include "compiler.h"
 
 /*********************************************************************
  *                             扫描器
@@ -35,7 +36,8 @@ void Scanner::showChar(char ch){
     else if(ch == '\n') printf("\\n");
     else if(ch == '\t') printf("\\t");
     else if(ch== ' ') printf("<blank>");
-    else printf("%s",&ch);
+    else cout<<ch;
+    printf("\t\t<%d>\n",ch);
 }
 
 int Scanner::scan(){
@@ -58,7 +60,7 @@ int Scanner::scan(){
         fclose(file);
         file = NULL;
     }
-    //if(Args::showchar()) showChar(ch);
+    if(Args::showChar) showChar(ch);
     return ch;
 }
 
@@ -105,6 +107,29 @@ Tag Keywords::getTag(string name){
  *                      词法分析器
  * *********************************************************/
 Keywords Lexer::keywords;
+
+string Lexer::varietyTable[48] = {
+    "ERR",																					//错误，异常
+	"END",																					//文件结束标记
+	"ID",																						//标识符
+	"KW_INT","KW_CHAR","KW_VOID",												//数据类型
+	"KW_EXTERN",																		//extern
+	"NUM","CH","STR",																		//字面量
+	"NOT","LEA",																			//单目运算 ! - & *
+	"ADD","SUB","MUL","DIV","MOD",													//算术运算符
+	"INC","DEC",
+	"GT","GE","LT","LE","EQU","NEQU",													//比较运算符
+	"AND","OR",																				//逻辑运算
+	"LPAREN","RPAREN",																//()
+	"LBRACK","RBRACK",																//[]
+	"LBRACE","RBRACE",																//{}
+	"COMMA","COLON","SEMICON",													//逗号,冒号,分号
+	"ASSIGN",																				//赋值
+	"KW_IF","KW_ELSE",																//if-else
+	"KW_SWITCH","KW_CASE","KW_DEFAULT",									//swicth-case-deault
+	"KW_WHILE","KW_DO","KW_FOR",												//循环
+	"KW_BREAK","KW_CONTINUE","KW_RETURN"
+};
 
 Lexer::Lexer(Scanner &sc):scanner(sc){
     token = NULL;

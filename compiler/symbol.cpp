@@ -5,6 +5,7 @@
 #include "genir.h"
 #include "selector.h"
 #include "platform.h"
+#include "compiler.h"
 
 #define SEMERROR(code, name) Error::semError(code,name)
 
@@ -226,6 +227,7 @@ Var* Var::getStep(Var* v){
     if(v->isBase()) return SymTab::one;
     else if(v->type == KW_CHAR) return SymTab::one;
     else if(v->type == KW_INT) return SymTab::four;
+    else return NULL;
 }
 
 //获取true变量
@@ -380,13 +382,19 @@ void Var::value(){
 // 函数对象
 Fun::Fun(bool ext, Tag t, string n,vector<Var*>&paraList){
     externed = ext;
+    leaf = true;
     type = t;
     name = n;
     paraVar = paraList;
-    curEsp = Plat::stackBase;
-    maxDepth = Plat::stackBase;
+    if(Args::genArm){
+        curEsp = Plat::stackBase;
+        maxDepth = Plat::stackBase;
+    }else{
+        curEsp = Plat::stackBase_mips;
+        maxDepth = Plat::stackBase_mips;
+    }
     // 计算参数相对于栈帧基址的偏移，从8字节开始，参数传递固定为4字节，偏移都为正值
-    for(int i = 0, argOff = 4; i < paraVar.size(); i++, argOff+=4){
+    for(int i = 0, argOff = 8; i < paraVar.size(); i++, argOff+=4){
         paraVar[i]->setOffset(argOff);
     }
     relocated=false;
@@ -440,6 +448,16 @@ void Fun::define(Fun* fun){
 // 设置extern
 void Fun::setExtern(bool ext){
     externed = ext;
+}
+
+// 设置叶子标记位
+void Fun::setLeaf(){
+    // 有函数调用就不是叶子函数了
+    leaf = false;
+}
+
+bool Fun::getLeaf(){
+    return leaf;
 }
 
 // 获取extern状态
@@ -548,7 +566,23 @@ void Fun::genAsm(FILE*file){
     fprintf(file, "\t.global %s\n", pname); // .global fun\n
     fprintf(file, "%s:\n", pname);
     ILoc il;
-    Selector sl(code,il);
-    sl.select();
+    InstMips mips;
+    Selector sl(code,il,mips);
+    sl.select(true);
     il.outPut(file);
+}
+
+void Fun::genAsm_mips(FILE*file){
+    if(externed) return;
+    vector<InterInst*> code;
+    code = interCode.getCode();
+    const char* pname = name.c_str();
+    fprintf(file, "#procedure %s content\n",pname);
+    // fprintf(file, "\t.global %s\n",pname);
+    fprintf(file, "%s:\n",pname);
+    ILoc il;
+    InstMips mips;
+    Selector sl(code,il,mips);
+    sl.select(false);
+    mips.outPut(file);
 }

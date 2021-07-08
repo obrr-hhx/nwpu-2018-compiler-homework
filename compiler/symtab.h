@@ -56,4 +56,6 @@ public:
 
     void genData(FILE *file); // 输出数据段
     void genAsm(const char *fileName); // 输出汇编
+    void genData_mips(FILE*file); // 输出mips数据段
+    void genAsm_MIPS(const char *fileName); // 输出MIPS汇编
 };

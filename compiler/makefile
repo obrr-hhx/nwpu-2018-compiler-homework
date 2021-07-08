@@ -1,5 +1,6 @@
 CC=g++
 EXE=main
+FinalName=hhx
 SRC=$(wildcard *.cpp)
 OBJ=$(SRC:.cpp=.o)
 CXXFLAGS=-g -Wno-deprecated -DDEBUG	#传入参数DEBUG
@@ -8,7 +9,7 @@ depend:
 	@$(CC) -MM $(SRC) > .depend
 -include .depend
 $(EXE):$(OBJ)
-	$(CC) $(OBJ) -o $(EXE) 
+	$(CC) $(OBJ) -o $(FinalName) 
 clean:
-	@rm $(EXE) $(OBJ) .depend -f
+	@rm $(FinalName) $(OBJ) .depend
 

@@ -24,7 +24,7 @@ void Arm::setDead(){
 // 输出函数
 string Arm::outPut(){
     if(dead)return "";
-	if(opcode=="")return "";//占位指令
+	if(opcode=="")return "nop\n";//占位指令
 	string ret=opcode+" "+result;
 	if(arg1!="")ret+=","+arg1;
 	if(arg2!="")ret+=","+arg2;
@@ -84,7 +84,7 @@ void ILoc::ldr_imm(string rsReg, int num){
 
 // 加载符号值 ldr r0,=g ldr r0,=.L1
 void ILoc::ldr_lb(string rsReg, string name){
-    emit("ldr", rsReg, ",="+name);
+    emit("ldr", rsReg, "="+name);
 }
 
 // 基址寻址 ldr r0,[fp,#100]
@@ -219,7 +219,7 @@ void ILoc::allocStack(Fun*fun, string tmpReg){
     }
 }
 
-// 加载函数到参数到寄存器
+// 加载函数参数到寄存器
 void ILoc::ldr_args(Fun*fun){
     vector<Var*> args=fun->getParaVar();// 获取参数
     for(unsigned int i=0; i<args.size(); i++){

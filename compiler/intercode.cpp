@@ -56,6 +56,14 @@ InterInst::InterInst(Operator op,InterInst *tar,Var *arg1,Var *arg2){
     this->arg2 = arg2;
 }
 
+void InterInst::setFirst(){
+    first=true;
+}
+
+bool InterInst::isFirst(){
+    return first;
+}
+
 bool InterInst::isJcond(){
     return op>=OP_JT&&op<=OP_JNE;
 }
@@ -90,7 +98,7 @@ Var* InterInst::getResult(){
 }
 
 void InterInst::setArg1(Var*arg1){
-    this->arg1==arg1;
+    this->arg1=arg1;
 }
 
 // 是否是声明
@@ -306,6 +314,20 @@ void InterInst::toString(){
 // 添加中间代码
 void InterCode::addInst(InterInst* inst){
     code.push_back(inst);
+}
+
+void InterCode::markFirst(){
+    unsigned int len=code.size();
+    code[0]->setFirst();
+    code[len-1]->setFirst();
+    if(len>2) code[1]->setFirst();
+
+    for(unsigned int i=1; i<len-1; i++){
+        if(code[i]->isJmp()||code[i]->isJcond()){// 直接跳转，条件跳转目标以及紧跟其后的指令
+            code[i]->getTarget()->setFirst();
+            code[i+1]->setFirst();
+        }
+    }
 }
 
 // 获取中间代码序列

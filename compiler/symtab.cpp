@@ -290,7 +290,7 @@ void SymTab::genData(FILE *file){
                 fprintf(file, "\t.word %s\n", var->getPtrVal().c_str());// .word    .L0
             }
         }else{ // 放在bss段
-            fprintf(file, "\t.comm %s,%d\n", var->getName().c_str(), var->getSize());// var:  .space  n
+            fprintf(file, "\t.comm %s,%d\n", var->getName().c_str(), var->getSize());
         }
     }
 }
@@ -298,12 +298,13 @@ void SymTab::genData(FILE *file){
 // 输出汇编文件
 void SymTab::genAsm(const char *fileName){
     string newName = fileName;
-    int idx = newName.rfind(".txt");
+    int idx = newName.rfind(".hhx");
     if(idx>0 && idx==newName.length()-4){
         newName.replace(idx,4,".asm");
     }else{
         newName = newName+".asm";
     }
+
 
     FILE* file = fopen(newName.c_str(), "w"); // 创建输出文件
 
@@ -313,6 +314,80 @@ void SymTab::genAsm(const char *fileName){
     fprintf(file, ".text\n");
     for(int i=0; i<funlist.size(); i++){
         funTab[funlist[i]]->genAsm(file);
+    }
+    fclose(file);
+}
+
+/*
+    MIPS生成
+*/
+
+void SymTab::genData_mips(FILE*file){
+    // 进行数据段的存储，生成常量字符串，.rodata段
+    // 常量字符串
+    
+    // 生成数据段和.bss段
+    Var *var;
+    Var *str;
+
+    fprintf(file, ".data\n");
+    vector<Var*> glbVars = getGlbVars();
+    for(unsigned int i = 0; i < glbVars.size(); i++){
+        var = glbVars[i];
+        fprintf(file, "\t.globl %s\n", var->getName().c_str());
+        if(!var->unInit()){// 如果变量被初始化了
+            fprintf(file, "%s:\n", var->getName().c_str());// var:
+            if(var->isBase()){
+                const char* t = var->isChar() ? ".byte" : ".word";
+                fprintf(file, "\t%s %d\n", t, var->getVal());// .byte  value   .word   value
+            }else{// 字符指针初始化
+                Var* tmpStr = strTab[var->getPtrVal()];
+                fprintf(file, "\t.asciiz \"%s\"\n", tmpStr->getStrVal().c_str());
+            }
+        }else{ // 放在bss段
+            fprintf(file, "%s:\t.space %d\n", var->getName().c_str(), var->getSize());// var:  .space  n
+        }
+    }
+    unordered_map<string, Var*>::iterator strIt,strEnd=strTab.end();
+    for(strIt=strTab.begin(); strIt!=strEnd; strIt++){
+        bool flag = true;
+        str = strIt->second;
+
+        for(unsigned int i = 0; i < glbVars.size(); i++){
+            flag = true;
+            var = glbVars[i];
+            if(str->getName() == var->getPtrVal()){
+                flag = false;
+                break;
+            }
+        }
+
+        if(flag){
+            fprintf(file, "%s:\n", str->getName().c_str());
+            fprintf(file, "\t.asciiz \"%s\"\n", str->getStrVal().c_str());
+        }
+    }
+}
+
+void SymTab::genAsm_MIPS(const char* fileName){
+    string newName = fileName;
+    int idx = newName.rfind(".hhx");
+    if(idx>0 && idx==newName.length()-4){
+        newName.replace(idx,9,"_mips.asm");
+    }else{
+        newName = newName+"_mips.asm";
+    }
+    FILE* file = fopen(newName.c_str(), "w"); // 创建输出文件
+
+    // 生成数据段
+    genData_mips(file);
+    // 生成代码段
+    fprintf(file, ".text\n");
+
+    fprintf(file,"\t.globl\tmain\n");
+    for(int i=funlist.size()-1; i>=0; i--){
+        string fName = funlist[i];
+        funTab[fName]->genAsm_mips(file);
     }
     fclose(file);
 }

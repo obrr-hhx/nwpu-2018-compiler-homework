@@ -229,6 +229,7 @@ Var* GenIR::genAssign(Var* lval, Var* rval){
 // 拷贝赋值语句
 Var* GenIR::genAssign(Var*val){
     Var*tmp = new Var(symtab.getScopePath(), val); // 拷贝变量信息
+    symtab.addVar(tmp);
     if(val->isRef()){ // val被指针指向
         // 中间代码 tmp = *(val->ptr)
         symtab.addInst(new InterInst(OP_GET, tmp, val->getPointer()));
@@ -236,6 +237,7 @@ Var* GenIR::genAssign(Var*val){
         // 中间代码 tmp = val
         symtab.addInst(new InterInst(OP_AS, tmp, val));
     }
+    return tmp;
 }
 
 // 产生右单目运算语句
@@ -536,7 +538,7 @@ void GenIR::genWhileHead(InterInst* &_while, InterInst* &_exit){
 void GenIR::genWhileCond(Var* cond, InterInst* _exit){
     if(cond){
         if(cond->isVoid()) cond = Var::getTrue(); // 处理空表达式
-        else if(cond->isRef()) cond - genAssign(cond);
+        else if(cond->isRef()) cond = genAssign(cond);
         // if(!cond) goto _exit
         symtab.addInst(new InterInst(OP_JF, _exit, cond));
     }

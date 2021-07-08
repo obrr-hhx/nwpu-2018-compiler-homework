@@ -59,4 +59,5 @@ public:
     Lexer(Scanner &sc);// 词法分析器构造
     ~Lexer();
     Token* tokenize();// 有限自动机匹配
+    static string varietyTable[48];
 };

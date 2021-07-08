@@ -88,6 +88,7 @@ public:
 class Fun{
     //函数信息
     bool externed;
+    bool leaf; // 是否是叶子函数
     Tag type;
     string name;
     vector<Var*> paraVar; // 参数形参列表
@@ -129,6 +130,8 @@ public:
 	Tag getType();//获取函数类型
 	string& getName();//获取名字
 	bool isRelocated();//栈帧重定位了？
+    void setLeaf(); // 对叶子标记进行设置
+    bool getLeaf();
 	vector<Var*>& getParaVar();//获取参数列表，用于为参数生成加载代码
     int getMaxDepth();
     void setMaxDepth(int dep);
@@ -136,4 +139,5 @@ public:
 	void printInterCode();//输出中间代码
 	void printOptCode();//输出优化后的中间代码
 	void genAsm(FILE*file);//输出汇编代码
+    void genAsm_mips(FILE*file);//输出mips代码
 };
