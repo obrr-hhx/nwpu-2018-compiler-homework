@@ -1,4 +1,6 @@
 .data
+newLine:
+	.asciiz "\n"
 .text
 	.globl	main
 #procedure main content

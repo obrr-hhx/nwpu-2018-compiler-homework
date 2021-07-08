@@ -1,4 +1,6 @@
 .data
+newLine:
+	.asciiz "\n"
 	.globl str
 str:
 	.asciiz "hello, world"
@@ -79,3 +81,5 @@ main:
 	add $sp,$fp,$zero
 	lw $fp,($sp)
 	addi $sp,$sp,8
+	li $v0,10
+	syscall 

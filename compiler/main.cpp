@@ -66,7 +66,12 @@ int main(int argc, char *argv[]){
 	else if(srcFiles.size()){
 		Compiler compiler;
 		for(int i=0; i<srcFiles.size(); i++){
-			compiler.compile(srcFiles[i]);
+			string tmpName = srcFiles[i];
+			if(tmpName.rfind(".hhx") != string::npos){
+				compiler.compile(srcFiles[i]);
+			}else{
+				printf("Please use .hhx file!!!\n");
+			}
 		}
 		int error=Error::getErrorNum();
 		int warn=Error::getWarnNum();

@@ -210,8 +210,12 @@ void Selector::translate_mips(InterInst* inst){
             instMips.inst("lw","$fp","($sp)");
             instMips.inst("addi","$sp","$sp","8");
             string mainName = inst->getFun()->getName();
-            if(mainName.compare("main")){
+            if(mainName.compare("main")){ // non-main
                 instMips.inst("jr","$ra");
+            }
+            else{ // main
+                instMips.inst("li","$v0","10");
+                instMips.syscall();
             }
         }else{// non-leaf
             instMips.inst("add","$sp","$fp","$zero");

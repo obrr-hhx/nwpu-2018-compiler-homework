@@ -512,6 +512,7 @@ void GenIR::genSwitchHead(InterInst*& _exit){
 // 产生switch尾部
 void GenIR::genSwitchTail(InterInst* _exit){
     symtab.addInst(_exit);
+    pop();
 }
 
 // 产生case头部
@@ -619,7 +620,9 @@ void GenIR::genForTail(InterInst*& _step, InterInst*& _exit){
 
 void GenIR::genBreak(){
     InterInst* tail = tails.back();
-    if(tail) symtab.addInst(new InterInst(OP_JMP, tail));
+    if(tail){
+        symtab.addInst(new InterInst(OP_JMP, tail));
+    }
     else SEMERROR(BREAK_ERR); // break不在循环或者switch-case中
 }
 

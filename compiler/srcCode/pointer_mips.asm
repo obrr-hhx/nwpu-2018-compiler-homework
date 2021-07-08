@@ -1,4 +1,6 @@
 .data
+newLine:
+	.asciiz "\n"
 	.globl .L7
 .L7:	.space 4
 	.globl .L9
@@ -83,3 +85,5 @@ main:
 	add $sp,$fp,$zero
 	lw $fp,($sp)
 	addi $sp,$sp,8
+	li $v0,10
+	syscall 

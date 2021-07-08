@@ -1,4 +1,6 @@
 .data
+newLine:
+	.asciiz "\n"
 	.globl .L7
 .L7:	.space 4
 	.globl .L8

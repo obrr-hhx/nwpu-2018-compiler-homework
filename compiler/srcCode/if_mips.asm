@@ -1,4 +1,6 @@
 .data
+newLine:
+	.asciiz "\n"
 .text
 	.globl	main
 #procedure main content
@@ -42,3 +44,5 @@ main:
 	add $sp,$fp,$zero
 	lw $fp,($sp)
 	addi $sp,$sp,8
+	li $v0,10
+	syscall 

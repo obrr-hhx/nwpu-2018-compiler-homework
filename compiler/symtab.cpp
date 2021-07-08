@@ -332,6 +332,7 @@ void SymTab::genData_mips(FILE*file){
 
     fprintf(file, ".data\n");
     vector<Var*> glbVars = getGlbVars();
+    fprintf(file,"newLine:\n\t.asciiz \"\\n\"\n");
     for(unsigned int i = 0; i < glbVars.size(); i++){
         var = glbVars[i];
         fprintf(file, "\t.globl %s\n", var->getName().c_str());

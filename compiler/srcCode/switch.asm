@@ -2,6 +2,10 @@
 .data
 	.global .L4
 	.comm .L4,4
+	.global .L7
+	.comm .L7,4
+	.global .L9
+	.comm .L9,4
 .text
 #procedure main code
 	.global main
@@ -11,10 +15,10 @@ main:
 	stmfd sp!,{fp,ip,lr,pc}
 	sub fp,ip,#4
 	# create stack of function
-	sub sp,sp,#12
+	sub sp,sp,#16
 	# load parameters to register
 	# text of procedure
-	mov r8,#9
+	mov r8,#1
 	str r8,[fp,#-16]
 	nop
 
@@ -39,6 +43,50 @@ main:
 	str r8,[fp,#-20]
 	nop
 
+	ldr r8,[fp,#-20]
+	mov r9,#1
+	cmp r8,r9
+	movne r8,#1
+	moveq r8,#0
+	cmp r8,#0
+	bne .L6
+	ldr r8,[fp,#-20]
+	str r8,[fp,#-28]
+	nop
+
+	ldr r8,[fp,#-20]
+	mov r9,#1
+	add r8,r8,r9
+	str r8,[fp,#-20]
+	nop
+
+	b .L5
+	.L6 :
+	ldr r8,[fp,#-20]
+	mov r9,#2
+	cmp r8,r9
+	movne r8,#1
+	moveq r8,#0
+	cmp r8,#0
+	bne .L8
+	ldr r8,[fp,#-20]
+	str r8,[fp,#-28]
+	nop
+
+	ldr r8,[fp,#-20]
+	mov r9,#1
+	sub r8,r8,r9
+	str r8,[fp,#-20]
+	nop
+
+	b .L5
+	.L8 :
+	mov r8,#3
+	str r8,[fp,#-16]
+	nop
+
+	b .L5
+	.L5 :
 	b .L2
 	.L3 :
 	ldr r8,[fp,#-16]
@@ -47,7 +95,7 @@ main:
 	movne r8,#1
 	moveq r8,#0
 	cmp r8,#0
-	bne .L5
+	bne .L10
 	ldr r8,[fp,#-16]
 	mov r9,#3
 	stmfd sp!,{r0-r7}
@@ -64,7 +112,7 @@ main:
 	nop
 
 	b .L2
-	.L5 :
+	.L10 :
 	ldr r8,[fp,#-16]
 	mov r9,#3
 	stmfd sp!,{r0-r7}
